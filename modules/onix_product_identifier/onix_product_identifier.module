@@ -1,0 +1,198 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Defines a field for attaching country-specific addresses to entities.
+ */
+
+/**
+ * Implementation of hook_field_info().
+ */
+function onix_product_identifier_field_info() {
+  $fields = array();
+
+  $fields['onix_product_identifier'] = array(
+    'label' => t('Onix Product Identifier'),
+    'description' => t('A field type used for storing product identifiers in accordance with the Onix standard'),
+    'default_widget' => 'onix_product_identifier_standard',
+    'default_formatter' => 'onix_product_identifier_default',
+  );
+
+  return $fields;
+}
+
+/**
+ * Implementation of hook_field_schema().
+ */
+function onix_product_identifier_field_schema() {
+  $columns = array();
+
+  $columns['onix_product_identifier_type'] = array(
+    'description' => 'The onix product identifier type code.',
+    'type' => 'char',
+    'length' => 2,
+    'default' => 0,
+    'not null' => FALSE,
+  );
+  $columns['onix_product_identifier_value'] = array(
+    'description' => 'The ONIX product identifier value.',
+    'type' => 'varchar',
+    'length' => 255,
+    'default' => '',
+    'not null' => FALSE,
+  );
+
+  return array('columns' => $columns);
+}
+
+/**
+ * Implementation of hook_field_is_empty().
+ */
+function onix_product_identifier_field_is_empty($item, $field) {
+  return empty($item['onix_product_identifier_value']);
+}
+
+/**
+ * Implementation of hook_field_widget_info().
+ */
+function onix_product_identifier_field_widget_info() {
+  $widgets = array();
+
+  $widgets['onix_product_identifier_standard'] = array(
+    'label' => t('Onix product identifier'),
+    'field types' => array('onix_product_identifier'),
+    'settings' => array(
+      'available_identifier_types' => array()
+    ),
+  );
+
+  return $widgets;
+}
+
+/**
+ * Implementation of hook_field_widget_form().
+ */
+function onix_product_identifier_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $element = array();
+  $settings = $instance['widget']['settings'];
+
+  $identifier = array();
+
+  $options = onix_product_identifier_type_list();
+  if (!empty($settings['available_identifier_types'])) {
+    $options = array_intersect_key($options, $settings['available_identifier_types']);
+  }
+
+  if ($instance['widget']['type'] == 'onix_product_identifier_standard') {
+    $element['onix_product_identifier_type'] = array(
+      '#type' => 'select',
+      '#title' => t('Onix product identifier type'),
+      '#options' => $options,
+      '#default_value' => empty($items[$delta]['onix_product_identifier_type']) ? NULL :$items[$delta]['onix_product_identifier_type'],
+      '#required' => FALSE,
+    );
+    $element['onix_product_identifier_value'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Onix product identifier value'),
+      '#default_value' => empty($items[$delta]['onix_product_identifier_value']) ? NULL : $items[$delta]['onix_product_identifier_value'],
+      '#required' => FALSE,
+    );
+  }
+  return $element;
+}
+
+/**
+ * Implementation of hook_field_widget_settings_form()
+ */
+function onix_product_identifier_widget_settings_form($field, $instance) {
+  $form = array();
+
+  $widget = $instance['widget'];
+  $settings = $widget['settings'];
+
+  if ($widget['type'] == 'onix_product_identifier_standard') {
+    $form['available_identifier_types'] = array(
+      '#type' => 'select',
+      '#multiple' => TRUE,
+      '#title' => t('Available identifiers'),
+      '#description' => t('If no identifiers are selected, all countries will be available'),
+      '#options' => onix_product_identifier_type_list(),
+      '#default_value' => $settings['available_countries'],
+    );
+  }
+
+  return $form;
+}
+
+function onix_product_identifier_widget_validate($element, &$form_state) {
+  drupal_set_message('<pre>'.var_export($form_state, true).'</pre>');
+}
+
+/**
+ * Implementation of hook_field_formatter_info().
+ */
+function onix_product_identifier_field_formatter_info() {
+  return array(
+    'onix_product_identifier_default_formatter' => array(
+      'label' => t('Default'),
+      'field types' => array('onix_product_identifier'),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_field_formatter_view().
+ */
+function onix_product_identifier_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+
+  if ($display['type'] == 'onix_product_identifier_default_formatter') {
+    $options = onix_product_identifier_type_list();
+    foreach ($items as $delta => $item) {
+      $item['onix_product_identifier_type_name'] = $options[$item['onix_product_identifier_type']];
+      $element[$delta] = array(
+        '#theme' => array('onix_product_identifier_default_formatter'),
+        '#identifier' => $item,
+      );
+    }
+  }
+
+  return $element;
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function onix_product_identifier_theme() {
+  $path = drupal_get_path('module', 'onix_product_identifier') . '/theme';
+  $templates = array();
+
+  $templates['onix_product_identifier_default_formatter'] = array(
+    'variables' => array('identifier' => NULL),
+    'template' => 'onix-product-identifier-default-formatter',
+    'path' => $path,
+  );
+
+  return $templates;
+}
+/**
+ * function onix_product_identifier_type_list()
+ */
+function onix_product_identifier_type_list() {
+  return array(
+    '01' => 'Proprietary',
+    '02' => 'ISBN-10',
+    '03' => 'GTIN-13',
+    '04' => 'UPC',
+    '05' => 'ISMN',
+    '06' => 'DOI',
+    '13' => 'LCCN',
+    '14' => 'GTIN-14',
+    '15' => 'ISBN-13',
+    '17' => 'Legal deposit number',
+    '22' => 'URN',
+    '23' => 'OCLC number',
+    '24' => 'Co-publisher’s ISBN-13',
+  );
+}

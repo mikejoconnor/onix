@@ -1,0 +1,6 @@
+;$Id
+name = Onix Product Identifier
+description = A product identifier field for the Onix standard
+core = 7.x
+
+files[] = onix_product_identifier.module
